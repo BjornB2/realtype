@@ -135,4 +135,12 @@ describe('typing engine', () => {
     expect(stats.accuracy).toBe(60);
     expect(stats.wpm).toBe(1);
   });
+
+  it('calculates standard gross WPM from all produced characters', () => {
+    const state = finishEngine(type(['h','x','l','l','o',' ','w','o','r','l','d'], ['hello', 'world']), 61000);
+    const stats = getStats(state, 61000);
+    expect(stats.cpm).toBe(11);
+    expect(stats.wpm).toBe(2);
+    expect(stats.accuracy).toBeLessThan(100);
+  });
 });

@@ -196,4 +196,24 @@ function Settings(p: SettingsProps) {
 function Setting({ label, children }: { label:string; children:React.ReactNode }) { return <div className="setting"><label>{label}</label>{children}</div>; }
 function SelectSetting({ label, value, onChange, options }: {label:string;value:string;onChange:(v:string)=>void;options:string[][]}) { return <label className="select-setting"><span>{label}</span><select value={value} onChange={e => onChange(e.target.value)}>{options.map(([key,text]) => <option value={key} key={key}>{text}</option>)}</select></label>; }
 function Segment({ options, value, setValue }: { options:(string[])[];value:string;setValue:(v:string)=>void }) { return <div className="segments">{options.map(([key,label]) => <button className={value === key ? 'active' : ''} onClick={() => setValue(key)} key={key}>{value === key && <Check size={12}/>} {label}</button>)}</div>; }
-function Results({ stats, t, reset }: { stats:ReturnType<typeof getStats>;t:Messages;reset:()=>void }) { const rank = t[getSpeedRank(stats.wpm) as keyof Messages]; return <div className="result-backdrop"><dialog open className="result-card" aria-labelledby="result-title"><div className="result-check"><Check/></div><span>{t.completed}</span><h2 id="result-title">{t.result}</h2><div className="result-main"><strong>{stats.wpm}</strong><span>{t.wpm}</span><div className="speed-rank">{t.speedRank}: <b>{rank}</b></div></div><div className="result-grid"><Metric value={stats.cpm} label={t.cpm}/><Metric value={`${stats.accuracy}%`} label={t.accuracy}/><Metric value={stats.correctWords} label={t.correctWords}/><Metric value={stats.incorrectWords} label={t.incorrectWords}/></div><button className="primary-button" onClick={reset}><RotateCcw size={16}/>{t.again}</button></dialog></div>; }
+function Results({ stats, t, reset }: { stats:ReturnType<typeof getStats>;t:Messages;reset:()=>void }) {
+  const rank = t[getSpeedRank(stats.wpm) as keyof Messages];
+  const rankPosition = Math.min(100, Math.max(0, (stats.wpm / 110) * 100));
+  return <div className="result-backdrop"><dialog open className="result-card" aria-labelledby="result-title">
+    <div className="result-check"><Check/></div><span>{t.completed}</span><h2 id="result-title">{t.result}</h2>
+    <div className="result-primary">
+      <div className="result-score"><strong>{stats.wpm}</strong><span>{t.wpm}</span></div>
+      <div className="result-score"><strong>{stats.accuracy}%</strong><span>{t.accuracy}</span></div>
+    </div>
+    <div className="rank-panel">
+      <span>{t.speedRank}</span><strong>{rank}</strong>
+      <div className="rank-track" role="img" aria-label={`${t.speedRank}: ${rank}`}>
+        <i/><i/><i/><i/><i/><i/>
+        <b className="rank-marker" style={{ left: `${rankPosition}%` }}><span>{stats.wpm}</span></b>
+      </div>
+      <div className="rank-range"><span>{t.calm}</span><span>{t.extreme}</span></div>
+    </div>
+    <div className="result-grid result-details"><Metric value={stats.cpm} label={t.cpm}/><Metric value={stats.correctWords} label={t.correctWords}/><Metric value={stats.incorrectWords} label={t.incorrectWords}/></div>
+    <button className="primary-button" onClick={reset}><RotateCcw size={16}/>{t.again}</button>
+  </dialog></div>;
+}

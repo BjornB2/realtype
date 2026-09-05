@@ -160,7 +160,7 @@ export function getStats(state: EngineState, now = Date.now()) {
   return {
     elapsedMs,
     cpm: minutes ? Math.round(state.keystrokes / minutes) : 0,
-    wpm: minutes ? Math.round((correctChars / 5) / minutes) : 0,
+    wpm: minutes ? Math.round((state.keystrokes / 5) / minutes) : 0,
     accuracy: assessedChars ? Math.round((correctChars / assessedChars) * 100) : 100,
     correctWords,
     incorrectWords: state.results.length - correctWords,
