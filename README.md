@@ -40,6 +40,23 @@ Een spatie zet het huidige woord alleen voorlopig klaar. Pas wanneer je de eerst
 
 Correcte letters worden direct herkend. Bij een fout zoekt de invoer binnen hetzelfde woord opnieuw aansluiting bij de voorbeeldtekst. Woorden en regels behouden daarbij altijd hun oorspronkelijke plaats. De getypte invoer blijft afzonderlijk zichtbaar, zodat fouten nooit worden verborgen.
 
+## Hoe de score wordt berekend
+
+RealType gebruikt een gecorrigeerde WPM-score waarin snelheid en nauwkeurigheid allebei meetellen:
+
+```text
+bruto WPM       = (geproduceerde tekens / 5) / verstreken minuten
+nauwkeurigheid  = correcte tekens / beoordeelde tekens
+WPM             = bruto WPM × nauwkeurigheid
+APM             = geproduceerde tekens / verstreken minuten
+```
+
+Een gestandaardiseerd “woord” bestaat hierbij uit vijf tekens. Letters, leestekens en geaccepteerde spaties tellen mee als geproduceerde tekens. Backspace telt niet als geproduceerd teken. De nauwkeurigheid wordt bepaald door de uiteindelijke invoer per woord met het voorbeeldwoord te vergelijken. Een fout die je met Backspace herstelt verlaagt de nauwkeurigheid dus niet alsnog, maar het corrigeren kost natuurlijk wel tijd.
+
+We kiezen bewust niet voor alleen bruto WPM: daarmee kan onnauwkeurig typen een te hoge snelheid opleveren. We keuren ook niet meteen een compleet woord af zodra er één letter fout is. Dat zou een tikfout in een lang woord onevenredig zwaar bestraffen. Door bruto WPM met de nauwkeurigheid te vermenigvuldigen telt ieder verkeerd, extra of ontbrekend teken naar verhouding mee. De uitkomst blijft daardoor vergelijkbaar met de gebruikelijke vijf-tekens-per-woordmethode, zonder fouten te negeren of complete woorden weg te gooien.
+
+Voorbeeld: 425 APM is 85 bruto WPM. Bij 97% nauwkeurigheid toont RealType `85 × 0,97 = 82 WPM` (afgerond).
+
 ## Lokaal ontwikkelen
 
 ```bash
