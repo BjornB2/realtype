@@ -23,6 +23,7 @@ export type EngineState = {
 };
 
 export type LetterState = 'correct' | 'incorrect' | 'missing' | '';
+const MAX_RESYNC_SHIFT = 2;
 
 export function alignWord(typed: string, target: string, finalized = false) {
   let comparedTarget = target;
@@ -30,7 +31,7 @@ export function alignWord(typed: string, target: string, finalized = false) {
     let bestDistance = Number.POSITIVE_INFINITY;
     let bestLength = 0;
     for (let length = 0; length <= target.length; length++) {
-      const distance = editDistance(typed, target.slice(0, length));
+      const distance = editDistance(typed, target.slice(0, length), MAX_RESYNC_SHIFT);
       if (distance < bestDistance || (distance === bestDistance && length > bestLength)) {
         bestDistance = distance;
         bestLength = length;
@@ -40,12 +41,14 @@ export function alignWord(typed: string, target: string, finalized = false) {
   }
   const rows = typed.length + 1;
   const cols = comparedTarget.length + 1;
-  const dp = Array.from({ length: rows }, () => Array<number>(cols).fill(0));
-  for (let i = 0; i < rows; i++) dp[i][0] = i;
-  for (let j = 0; j < cols; j++) dp[0][j] = j;
+  const dp = Array.from({ length: rows }, () => Array<number>(cols).fill(Number.POSITIVE_INFINITY));
+  for (let i = 0; i < rows && i <= MAX_RESYNC_SHIFT; i++) dp[i][0] = i;
+  for (let j = 0; j < cols && j <= MAX_RESYNC_SHIFT; j++) dp[0][j] = j;
   for (let i = 1; i < rows; i++) for (let j = 1; j < cols; j++) {
+    if (Math.abs(i - j) > MAX_RESYNC_SHIFT) continue;
     dp[i][j] = Math.min(dp[i - 1][j] + 1, dp[i][j - 1] + 1, dp[i - 1][j - 1] + (typed[i - 1] === comparedTarget[j - 1] ? 0 : 1));
   }
+  if (!Number.isFinite(dp[typed.length][comparedTarget.length])) return positionalAlignment(typed, target, finalized);
   const states: LetterState[] = Array(target.length).fill('');
   const displayChars = [...target];
   const extrasByPosition: string[] = Array.from({ length: target.length + 1 }, () => '');
@@ -74,18 +77,30 @@ export function alignWord(typed: string, target: string, finalized = false) {
   return { states, displayChars, correct, extras, extrasByPosition, extraPositions, cursor: comparedTarget.length, errors: dp[typed.length][comparedTarget.length] + (finalized ? target.length - comparedTarget.length : 0) };
 }
 
-function editDistance(a: string, b: string) {
-  const row = Array.from({ length: b.length + 1 }, (_, i) => i);
-  for (let i = 1; i <= a.length; i++) {
-    let diagonal = row[0];
-    row[0] = i;
-    for (let j = 1; j <= b.length; j++) {
-      const previous = row[j];
-      row[j] = Math.min(row[j] + 1, row[j - 1] + 1, diagonal + (a[i - 1] === b[j - 1] ? 0 : 1));
-      diagonal = previous;
-    }
+function editDistance(a: string, b: string, maxShift: number) {
+  if (Math.abs(a.length - b.length) > maxShift) return Number.POSITIVE_INFINITY;
+  const dp = Array.from({ length: a.length + 1 }, () => Array<number>(b.length + 1).fill(Number.POSITIVE_INFINITY));
+  for (let i = 0; i <= Math.min(a.length, maxShift); i++) dp[i][0] = i;
+  for (let j = 0; j <= Math.min(b.length, maxShift); j++) dp[0][j] = j;
+  for (let i = 1; i <= a.length; i++) for (let j = 1; j <= b.length; j++) {
+    if (Math.abs(i - j) > maxShift) continue;
+    dp[i][j] = Math.min(dp[i - 1][j] + 1, dp[i][j - 1] + 1, dp[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
   }
-  return row[b.length];
+  return dp[a.length][b.length];
+}
+
+function positionalAlignment(typed: string, target: string, finalized: boolean) {
+  const states: LetterState[] = target.split('').map((letter, index) => {
+    if (typed[index] == null) return finalized ? 'missing' : '';
+    return typed[index] === letter ? 'correct' : 'incorrect';
+  });
+  const displayChars = target.split('').map((letter, index) => typed[index] ?? letter);
+  const overflow = typed.slice(target.length);
+  const extrasByPosition = Array.from({ length: target.length + 1 }, () => '');
+  extrasByPosition[target.length] = overflow;
+  const correct = states.filter(state => state === 'correct').length;
+  const missing = states.filter(state => state === 'missing').length;
+  return { states, displayChars, correct, extras: overflow.length, extrasByPosition, extraPositions: Array(overflow.length).fill(target.length), cursor: Math.min(typed.length, target.length), errors: typed.length - correct + missing };
 }
 
 export function createEngine(words: string[]): EngineState {

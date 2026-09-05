@@ -54,8 +54,14 @@ describe('typing engine', () => {
     expect(alignment.displayChars[2]).toBe('x');
   });
 
-  it('groups multiple extra letters at one boundary in their typed order', () => {
-    expect(alignWord('tafrjkels', 'tafels').extrasByPosition[3]).toBe('rjk');
+  it('does not resync beyond two positions', () => {
+    const alignment = alignWord('tafrjkels', 'tafels');
+    expect(alignment.extrasByPosition[3]).toBe('');
+    expect(alignment.states.slice(3)).toContain('incorrect');
+  });
+
+  it('still resyncs up to two extra letters', () => {
+    expect(alignWord('tafrjels', 'tafels').extrasByPosition[3]).toBe('rj');
   });
 
   it('starts only on a printable key', () => {
