@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://bjornb2.github.io/realtype/sitemap.xml
