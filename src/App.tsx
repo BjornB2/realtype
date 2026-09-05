@@ -2,12 +2,13 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Check, Languages, Moon, RotateCcw, Sun } from 'lucide-react';
 import { makeWords, type Language } from './content';
 import { browserLanguage, messages, type Messages } from './i18n';
-import { alignWord, createEngine, finishEngine, getSpeedRank, getStats, type EngineState, type WordResult, typeKey } from './engine';
+import { alignWord, createEngine, finishAtWordLimit, finishEngine, getSpeedRank, getStats, type EngineState, type WordResult, typeKey } from './engine';
 
 type Mode = 'time' | 'words';
 type Theme = 'auto' | 'light' | 'dark';
 const durationOptions = [15, 30, 60, 120];
 const wordOptions = [10, 25, 50, 100, 250, 500];
+const passageWordCount = 501;
 
 function saved<T extends string>(key: string, fallback: T): T {
   return (localStorage.getItem(key) as T | null) ?? fallback;
@@ -23,7 +24,7 @@ export default function App() {
   const [wordCount, setWordCount] = useState(50);
   const [customCount, setCustomCount] = useState('');
   const [tick, setTick] = useState(0);
-  const [engine, setEngine] = useState<EngineState>(() => createEngine(makeWords(initialLanguage, 500)));
+  const [engine, setEngine] = useState<EngineState>(() => createEngine(makeWords(initialLanguage, passageWordCount)));
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const passageRef = useRef<HTMLDivElement>(null);
   const activeRef = useRef<HTMLSpanElement>(null);
@@ -34,9 +35,9 @@ export default function App() {
   const reset = (_fresh = false) => {
     setEngine(current => {
       const previousOpening = current.words.slice(0, 8).join(' ');
-      let words = makeWords(textLanguage, effectiveCount);
+      let words = makeWords(textLanguage, passageWordCount);
       for (let attempt = 0; attempt < 5 && words.slice(0, 8).join(' ') === previousOpening; attempt++) {
-        words = makeWords(textLanguage, effectiveCount);
+        words = makeWords(textLanguage, passageWordCount);
       }
       return createEngine(words);
     });
@@ -96,7 +97,13 @@ export default function App() {
     if (event.metaKey || event.ctrlKey || event.altKey) return;
     if (event.key === 'Tab' || event.key === 'Enter') return;
     event.preventDefault();
-    setEngine(current => typeKey(current, event.key));
+    const now = Date.now();
+    setEngine(current => {
+      const next = typeKey(current, event.key, now);
+      return mode === 'words' && next.results.length >= effectiveCount
+        ? finishAtWordLimit(next, effectiveCount, now)
+        : next;
+    });
   };
 
   return <main className="shell">

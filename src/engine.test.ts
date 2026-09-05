@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { alignWord, createEngine, finishEngine, getSpeedRank, getStats, typeKey } from './engine';
+import { alignWord, createEngine, finishAtWordLimit, finishEngine, getSpeedRank, getStats, typeKey } from './engine';
 import { makeWords } from './content';
 
 const type = (keys: string[], words = ['hello', 'world']) => keys.reduce((state, key, i) => typeKey(state, key, 1000 + i * 100), createEngine(words));
@@ -126,6 +126,18 @@ describe('typing engine', () => {
     const state = type(['o','k',' '], ['ok']);
     expect(state.status).toBe('finished');
     expect(state.results).toEqual([{ typed: 'ok', target: 'ok' }]);
+  });
+
+  it('finishes a word limit on the first letter beyond it without counting that letter', () => {
+    const continuous = type(['o','n','e',' ','t','w','o',' ','t'], ['one', 'two', 'three']);
+    const state = finishAtWordLimit(continuous, 2, 2000);
+    expect(state.status).toBe('finished');
+    expect(state.results).toEqual([
+      { typed: 'one', target: 'one' },
+      { typed: 'two', target: 'two' },
+    ]);
+    expect(state.current).toBe('');
+    expect(state.keystrokes).toBe(8);
   });
 
   it('assesses the current word when time expires', () => {

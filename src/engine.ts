@@ -142,6 +142,19 @@ export function finishEngine(previous: EngineState, now = Date.now()): EngineSta
   return { ...previous, results, status: 'finished', finishedAt: now, pendingSpace: false };
 }
 
+export function finishAtWordLimit(previous: EngineState, wordLimit: number, now = Date.now()): EngineState {
+  if (previous.status === 'finished' || previous.results.length < wordLimit) return previous;
+  return {
+    ...previous,
+    results: previous.results.slice(0, wordLimit),
+    current: '',
+    pendingSpace: false,
+    keystrokes: Math.max(0, previous.keystrokes - 1),
+    status: 'finished',
+    finishedAt: now,
+  };
+}
+
 export function getStats(state: EngineState, now = Date.now()) {
   const end = state.finishedAt ?? now;
   const elapsedMs = state.startedAt ? Math.max(end - state.startedAt, 1) : 0;
