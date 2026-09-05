@@ -18,6 +18,12 @@ describe('typing engine', () => {
     }
   });
 
+  it('does not include accented or non-ASCII characters in test text', () => {
+    const isPlainAscii = (text: string) => [...text].every(character => character.charCodeAt(0) <= 127);
+    expect(isPlainAscii(makeWords('nl', 500, () => 0.4).join(' '))).toBe(true);
+    expect(isPlainAscii(makeWords('en', 500, () => 0.4).join(' '))).toBe(true);
+  });
+
   it('realigns after a skipped letter', () => {
     expect(alignWord('helo', 'hello').states).toEqual(['correct', 'correct', 'missing', 'correct', 'correct']);
   });
@@ -26,6 +32,11 @@ describe('typing engine', () => {
     const alignment = alignWord('helllo', 'hello');
     expect(alignment.states).toEqual(['correct', 'correct', 'correct', 'correct', 'correct']);
     expect(alignment.extras).toBe(1);
+  });
+
+  it('reports where an extra letter was inserted', () => {
+    expect(alignWord('rtafels', 'tafels').extraPositions).toEqual([0]);
+    expect(alignWord('taffels', 'tafels').extraPositions).toEqual([2]);
   });
 
   it('starts only on a printable key', () => {

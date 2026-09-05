@@ -135,8 +135,10 @@ function Word({ word, index, engine, activeRef }: { word: string; index: number;
     {word.split('').map((letter, position) => {
       const state = alignment.states[position];
       const cursor = isActive && position === alignment.cursor && !engine.pendingSpace;
-      return <span key={position} className={`letter ${state} ${cursor ? 'cursor' : ''}`}>{letter}</span>;
+      const extraCount = alignment.extraPositions.filter(at => at === position).length;
+      return <span key={position} className={`letter ${state} ${cursor ? 'cursor' : ''}`}>{extraCount > 0 && <span className="extra-marker" aria-hidden="true" data-count={extraCount}/>}<>{letter}</></span>;
     })}
+    {alignment.extraPositions.includes(word.length) && <span className="extra-marker end-extra" aria-hidden="true" data-count={alignment.extraPositions.filter(at => at === word.length).length}/>} 
     {isActive && alignment.cursor === word.length && !engine.pendingSpace && <span className="end-cursor"/>}
     {typed.length > word.length && <span className="extra" aria-hidden="true">{typed.slice(word.length)}</span>}
   </span>;

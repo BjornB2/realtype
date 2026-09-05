@@ -39,6 +39,7 @@ export function alignWord(typed: string, target: string, finalized = false) {
   const states: LetterState[] = Array(target.length).fill('');
   let correct = 0;
   let extras = 0;
+  const extraPositions: number[] = [];
   let i = typed.length;
   let j = comparedTarget.length;
   while (i > 0 || j > 0) {
@@ -51,11 +52,12 @@ export function alignWord(typed: string, target: string, finalized = false) {
       j--;
     } else {
       extras++;
+      extraPositions.push(j);
       i--;
     }
   }
   if (finalized) for (let p = comparedTarget.length; p < target.length; p++) states[p] = 'missing';
-  return { states, correct, extras, cursor: comparedTarget.length, errors: dp[typed.length][comparedTarget.length] + (finalized ? target.length - comparedTarget.length : 0) };
+  return { states, correct, extras, extraPositions, cursor: comparedTarget.length, errors: dp[typed.length][comparedTarget.length] + (finalized ? target.length - comparedTarget.length : 0) };
 }
 
 function editDistance(a: string, b: string) {
