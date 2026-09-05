@@ -11,6 +11,13 @@ describe('typing engine', () => {
     expect(early).not.toBe(late);
   });
 
+  it('always starts at the beginning of a sentence', () => {
+    for (const random of [0.01, 0.25, 0.55, 0.99]) {
+      expect(makeWords('nl', 20, () => random)[0]).toMatch(/^[A-ZÀ-Ý]/);
+      expect(makeWords('en', 20, () => random)[0]).toMatch(/^[A-Z]/);
+    }
+  });
+
   it('realigns after a skipped letter', () => {
     expect(alignWord('helo', 'hello').states).toEqual(['correct', 'correct', 'missing', 'correct', 'correct']);
   });

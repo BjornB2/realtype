@@ -36,8 +36,7 @@ export function makeWords(language: Language, amount: number, random = Math.rand
   const pool = paragraphs.flatMap(p => p.split(/\s+/));
   const result: string[] = [];
   while (result.length < amount) {
-    const offset = Math.floor(random() * pool.length);
-    result.push(...pool.slice(offset), ...pool.slice(0, offset));
+    result.push(...pool);
   }
   return result.slice(0, amount);
 }
