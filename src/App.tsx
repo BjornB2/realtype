@@ -16,7 +16,7 @@ function saved<T extends string>(key: string, fallback: T): T {
 export default function App() {
   const initialLanguage = browserLanguage();
   const [locale, setLocale] = useState<Language>(() => saved('realtype-locale', initialLanguage));
-  const [textLanguage, setTextLanguage] = useState<Language>(() => saved('realtype-text-language', initialLanguage));
+  const [textLanguageMode, setTextLanguageMode] = useState<'auto' | Language>(() => saved('realtype-text-language-mode', 'auto'));
   const [theme, setTheme] = useState<Theme>(() => saved('realtype-theme', 'auto'));
   const [mode, setMode] = useState<Mode>('time');
   const [duration, setDuration] = useState(60);
@@ -27,6 +27,7 @@ export default function App() {
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const activeRef = useRef<HTMLSpanElement>(null);
   const t = messages[locale];
+  const textLanguage: Language = textLanguageMode === 'auto' ? locale : textLanguageMode;
   const effectiveCount = mode === 'words' ? Math.min(500, Math.max(1, Number(customCount) || wordCount)) : 500;
 
   const reset = (_fresh = false) => {
@@ -47,7 +48,7 @@ export default function App() {
     document.documentElement.lang = locale;
     document.title = locale === 'nl' ? 'RealType — typ zoals je echt typt' : 'RealType — type the way you really type';
   }, [locale]);
-  useEffect(() => { localStorage.setItem('realtype-text-language', textLanguage); reset(); }, [textLanguage, mode, duration, wordCount, customCount]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { localStorage.setItem('realtype-text-language-mode', textLanguageMode); reset(); }, [textLanguage, textLanguageMode, mode, duration, wordCount, customCount]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     localStorage.setItem('realtype-theme', theme);
     document.documentElement.dataset.theme = theme;
@@ -80,13 +81,20 @@ export default function App() {
       <button className="brand" onClick={() => reset(true)} aria-label="RealType"><span>R</span><span className="brand-name">realtype</span></button>
       <p className="tagline">{t.tagline}</p>
       <div className="header-actions">
+        <label className="locale-picker" aria-label={t.interfaceLanguage}>
+          <span aria-hidden="true">{locale === 'nl' ? '🇳🇱' : '🇬🇧'}</span>
+          <select value={locale} onChange={e => setLocale(e.target.value as Language)} aria-label={t.interfaceLanguage}>
+            <option value="nl">🇳🇱 Nederlands</option>
+            <option value="en">🇬🇧 English</option>
+          </select>
+        </label>
         <ThemeButton theme={theme} setTheme={setTheme} label={t.theme} />
       </div>
     </header>
 
     <section className="workspace">
       <div className="eyebrow"><Languages size={13}/>{textLanguage === 'nl' ? 'NEDERLANDS' : 'ENGLISH'}<i/> {testLabel.toUpperCase()}</div>
-      <Settings locale={locale} textLanguage={textLanguage} mode={mode} duration={duration} wordCount={wordCount} customCount={customCount} setLocale={setLocale} setTextLanguage={setTextLanguage} setMode={setMode} setDuration={setDuration} setWordCount={setWordCount} setCustomCount={setCustomCount} />
+      <Settings locale={locale} textLanguageMode={textLanguageMode} mode={mode} duration={duration} wordCount={wordCount} customCount={customCount} setTextLanguageMode={setTextLanguageMode} setMode={setMode} setDuration={setDuration} setWordCount={setWordCount} setCustomCount={setCustomCount} />
       <div className="stats" aria-live="polite">
         <Metric value={remaining} label={mode === 'time' ? 'sec' : t.words.toLowerCase()} />
         <Metric value={stats.wpm} label={t.wpm} />
@@ -140,12 +148,11 @@ function ThemeButton({ theme, setTheme, label }: { theme: Theme; setTheme: (v: T
   return <button className="icon-button theme-button" aria-label={`${label}: ${theme}`} onClick={e => { e.stopPropagation(); setTheme(next[theme]); }} title={`${label}: ${theme}`}>{Icon ? <Icon size={18}/> : <span className="auto-theme"><Sun/><Moon/></span>}</button>;
 }
 
-type SettingsProps = { locale:Language;textLanguage:Language;mode:Mode;duration:number;wordCount:number;customCount:string;setLocale:(v:Language)=>void;setTextLanguage:(v:Language)=>void;setMode:(v:Mode)=>void;setDuration:(v:number)=>void;setWordCount:(v:number)=>void;setCustomCount:(v:string)=>void };
+type SettingsProps = { locale:Language;textLanguageMode:'auto'|Language;mode:Mode;duration:number;wordCount:number;customCount:string;setTextLanguageMode:(v:'auto'|Language)=>void;setMode:(v:Mode)=>void;setDuration:(v:number)=>void;setWordCount:(v:number)=>void;setCustomCount:(v:string)=>void };
 function Settings(p: SettingsProps) {
   const t = messages[p.locale];
   return <aside className="settings-bar" aria-label={t.settings}>
-    <SelectSetting label={t.interfaceLanguage} value={p.locale} onChange={v => p.setLocale(v as Language)} options={[['nl','Nederlands'],['en','English']]} />
-    <SelectSetting label={t.textLanguage} value={p.textLanguage} onChange={v => p.setTextLanguage(v as Language)} options={[['nl','Nederlands'],['en','English']]} />
+    <SelectSetting label={t.textLanguage} value={p.textLanguageMode} onChange={v => p.setTextLanguageMode(v as 'auto'|Language)} options={[['auto',`${t.auto} (${p.locale === 'nl' ? 'Nederlands' : 'English'})`],['nl','Nederlands'],['en','English']]} />
     <Setting label={t.mode}><Segment options={[['time',t.time],['words',t.words]]} value={p.mode} setValue={v => p.setMode(v as Mode)}/></Setting>
     {p.mode === 'time'
       ? <SelectSetting label={t.duration} value={String(p.duration)} onChange={v => p.setDuration(Number(v))} options={durationOptions.map(n => [String(n), `${n} ${t.seconds}`])}/>
