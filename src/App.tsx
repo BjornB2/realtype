@@ -69,7 +69,7 @@ export default function App() {
       setEngine(current => finishEngine(current, current.startedAt! + duration * 1000));
     }
   }, [tick, duration, mode, engine.status, engine.startedAt]);
-  useEffect(() => { activeRef.current?.scrollIntoView({ block: 'center', behavior: 'smooth' }); }, [engine.index]);
+  useEffect(() => { activeRef.current?.scrollIntoView({ block: 'nearest' }); }, [engine.index]);
 
   const stats = getStats(engine, tick);
   const remaining = mode === 'time' ? Math.max(0, Math.ceil((duration * 1000 - stats.elapsedMs) / 1000)) : Math.max(0, effectiveCount - engine.results.length);

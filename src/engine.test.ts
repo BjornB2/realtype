@@ -84,6 +84,15 @@ describe('typing engine', () => {
     expect(state.current).toBe('w');
   });
 
+  it('can cross at most one word boundary per keystroke', () => {
+    let state = createEngine(['one', 'two', 'three', 'four']);
+    for (const key of ['x', ' ', 'y', 'z', ' ', 'q', ' ', 'r']) {
+      const previousIndex = state.index;
+      state = typeKey(state, key, 1000);
+      expect(state.index - previousIndex).toBeLessThanOrEqual(1);
+    }
+  });
+
   it('does not move backwards after the next word has started', () => {
     const state = type(['h','i',' ','w','Backspace']);
     expect(state.results[0]).toEqual({ typed: 'hi', target: 'hello' });
