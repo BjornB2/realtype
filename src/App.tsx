@@ -118,7 +118,7 @@ function Word({ word, index, engine, activeRef }: { word: string; index: number;
   const isActive = index === engine.index && engine.status !== 'finished';
   const typed = result?.typed ?? (isActive ? engine.current : '');
   const committed = Boolean(result);
-  return <span ref={activeRef} className={`word ${isActive ? 'active' : ''} ${committed ? (typed === word ? 'word-correct' : 'word-wrong') : ''}`}>
+  return <span ref={activeRef} className={`word ${isActive ? 'active' : ''} ${typed.length > word.length ? 'has-overflow' : ''} ${committed ? (typed === word ? 'word-correct' : 'word-wrong') : ''}`}>
     {word.split('').map((letter, position) => {
       const input = typed[position];
       const state = input == null ? (committed ? 'missing' : '') : input === letter ? 'correct' : 'incorrect';
