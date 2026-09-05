@@ -26,6 +26,8 @@ export type LetterState = 'correct' | 'incorrect' | 'missing' | '';
 const MAX_RESYNC_SHIFT = 2;
 
 export function alignWord(typed: string, target: string, finalized = false) {
+  typed = typed.match(/^\S*/)?.[0] ?? '';
+  target = target.match(/^\S*/)?.[0] ?? '';
   let comparedTarget = target;
   if (!finalized) {
     let bestDistance = Number.POSITIVE_INFINITY;

@@ -60,6 +60,12 @@ describe('typing engine', () => {
     expect(alignment.states.slice(3)).toContain('incorrect');
   });
 
+  it('never aligns characters across whitespace', () => {
+    const alignment = alignWord('helo world', 'hello');
+    expect(alignment.states).toEqual(['correct', 'correct', 'missing', 'correct', 'correct']);
+    expect(alignment.extrasByPosition.every(extra => extra === '')).toBe(true);
+  });
+
   it('still resyncs up to two extra letters', () => {
     expect(alignWord('tafrjels', 'tafels').extrasByPosition[3]).toBe('rj');
   });
@@ -91,6 +97,16 @@ describe('typing engine', () => {
       state = typeKey(state, key, 1000);
       expect(state.index - previousIndex).toBeLessThanOrEqual(1);
     }
+  });
+
+  it('keeps every typed word paired with exactly one target word', () => {
+    const state = type(['a', ' ', 'b', ' ', 'c'], ['alpha', 'beta', 'gamma']);
+    expect(state.results).toEqual([
+      { typed: 'a', target: 'alpha' },
+      { typed: 'b', target: 'beta' },
+    ]);
+    expect(state.index).toBe(2);
+    expect(state.current).toBe('c');
   });
 
   it('does not move backwards after the next word has started', () => {
