@@ -6,7 +6,7 @@ Een rustige, realistische typing test die je laat typen zoals je dat in het dage
 
 **[Open de live typing test](https://bjornb2.github.io/realtype/)**
 
-![RealType in donkere modus](docs/realtype-overview.png)
+![RealType in de live browserweergave](docs/realtype-overview.png)
 
 ## Waarom RealType?
 
@@ -25,8 +25,6 @@ Veel typing tests raken binnen een woord uit synchronisatie zodra je een letter 
 ## Hoe woordinvoer werkt
 
 Een spatie zet het huidige woord voorlopig klaar. Met Backspace kun je de spatie nog verwijderen en het woord verbeteren. Het woord wordt pas definitief beoordeeld wanneer je de eerste letter van het volgende woord typt.
-
-![RealType tijdens het typen](docs/realtype-typing.png)
 
 ## Lokaal ontwikkelen
 
