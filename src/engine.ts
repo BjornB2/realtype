@@ -1,5 +1,15 @@
 export type WordResult = { typed: string; target: string };
 export type TestStatus = 'idle' | 'running' | 'finished';
+export type SpeedRank = 'calm' | 'average' | 'fluent' | 'fast' | 'veryFast' | 'extreme';
+
+export function getSpeedRank(wpm: number): SpeedRank {
+  if (wpm < 20) return 'calm';
+  if (wpm < 35) return 'average';
+  if (wpm < 50) return 'fluent';
+  if (wpm < 70) return 'fast';
+  if (wpm < 90) return 'veryFast';
+  return 'extreme';
+}
 export type EngineState = {
   words: string[];
   index: number;

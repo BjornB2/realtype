@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Check, Languages, Moon, RotateCcw, Sun } from 'lucide-react';
 import { makeWords, type Language } from './content';
 import { browserLanguage, messages, type Messages } from './i18n';
-import { alignWord, createEngine, finishEngine, getStats, type EngineState, type WordResult, typeKey } from './engine';
+import { alignWord, createEngine, finishEngine, getSpeedRank, getStats, type EngineState, type WordResult, typeKey } from './engine';
 
 type Mode = 'time' | 'words';
 type Theme = 'auto' | 'light' | 'dark';
@@ -39,6 +39,12 @@ export default function App() {
       }
       return createEngine(words);
     });
+    setTick(Date.now());
+    requestAnimationFrame(() => inputRef.current?.focus());
+  };
+
+  const restartSameText = () => {
+    setEngine(current => createEngine(current.words));
     setTick(Date.now());
     requestAnimationFrame(() => inputRef.current?.focus());
   };
@@ -113,7 +119,10 @@ export default function App() {
           {engine.pendingSpace && <small>{t.ready}</small>}
         </div>
       </div>
-      <button className="restart" onClick={e => { e.stopPropagation(); reset(true); }}><RotateCcw size={15}/>{t.newText}</button>
+      <div className="test-actions">
+        <button className="restart restart-primary" onClick={e => { e.stopPropagation(); restartSameText(); }}><RotateCcw size={15}/>{t.restart}</button>
+        <button className="restart" onClick={e => { e.stopPropagation(); reset(true); }}>{t.newText}</button>
+      </div>
     </section>
 
     {engine.status === 'finished' && <Results stats={stats} t={t} reset={() => reset(true)} />}
@@ -166,4 +175,4 @@ function Settings(p: SettingsProps) {
 function Setting({ label, children }: { label:string; children:React.ReactNode }) { return <div className="setting"><label>{label}</label>{children}</div>; }
 function SelectSetting({ label, value, onChange, options }: {label:string;value:string;onChange:(v:string)=>void;options:string[][]}) { return <label className="select-setting"><span>{label}</span><select value={value} onChange={e => onChange(e.target.value)}>{options.map(([key,text]) => <option value={key} key={key}>{text}</option>)}</select></label>; }
 function Segment({ options, value, setValue }: { options:(string[])[];value:string;setValue:(v:string)=>void }) { return <div className="segments">{options.map(([key,label]) => <button className={value === key ? 'active' : ''} onClick={() => setValue(key)} key={key}>{value === key && <Check size={12}/>} {label}</button>)}</div>; }
-function Results({ stats, t, reset }: { stats:ReturnType<typeof getStats>;t:Messages;reset:()=>void }) { return <div className="result-backdrop"><dialog open className="result-card" aria-labelledby="result-title"><div className="result-check"><Check/></div><span>{t.completed}</span><h2 id="result-title">{t.result}</h2><div className="result-main"><strong>{stats.wpm}</strong><span>{t.wpm}</span></div><div className="result-grid"><Metric value={stats.cpm} label={t.cpm}/><Metric value={`${stats.accuracy}%`} label={t.accuracy}/><Metric value={stats.correctWords} label={t.correctWords}/><Metric value={stats.incorrectWords} label={t.incorrectWords}/></div><button className="primary-button" onClick={reset}><RotateCcw size={16}/>{t.again}</button></dialog></div>; }
+function Results({ stats, t, reset }: { stats:ReturnType<typeof getStats>;t:Messages;reset:()=>void }) { const rank = t[getSpeedRank(stats.wpm) as keyof Messages]; return <div className="result-backdrop"><dialog open className="result-card" aria-labelledby="result-title"><div className="result-check"><Check/></div><span>{t.completed}</span><h2 id="result-title">{t.result}</h2><div className="result-main"><strong>{stats.wpm}</strong><span>{t.wpm}</span><div className="speed-rank">{t.speedRank}: <b>{rank}</b></div></div><div className="result-grid"><Metric value={stats.cpm} label={t.cpm}/><Metric value={`${stats.accuracy}%`} label={t.accuracy}/><Metric value={stats.correctWords} label={t.correctWords}/><Metric value={stats.incorrectWords} label={t.incorrectWords}/></div><button className="primary-button" onClick={reset}><RotateCcw size={16}/>{t.again}</button></dialog></div>; }

@@ -1,10 +1,16 @@
 import { describe, expect, it } from 'vitest';
-import { alignWord, createEngine, finishEngine, getStats, typeKey } from './engine';
+import { alignWord, createEngine, finishEngine, getSpeedRank, getStats, typeKey } from './engine';
 import { makeWords } from './content';
 
 const type = (keys: string[], words = ['hello', 'world']) => keys.reduce((state, key, i) => typeKey(state, key, 1000 + i * 100), createEngine(words));
 
 describe('typing engine', () => {
+  it('classifies typing speed from calm to extreme', () => {
+    expect(getSpeedRank(19)).toBe('calm');
+    expect(getSpeedRank(35)).toBe('fluent');
+    expect(getSpeedRank(70)).toBe('veryFast');
+    expect(getSpeedRank(90)).toBe('extreme');
+  });
   it('can produce different text selections', () => {
     const early = makeWords('nl', 20, () => 0.05).join(' ');
     const late = makeWords('nl', 20, () => 0.95).join(' ');
