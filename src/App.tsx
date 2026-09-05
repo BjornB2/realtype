@@ -29,8 +29,15 @@ export default function App() {
   const t = messages[locale];
   const effectiveCount = mode === 'words' ? Math.min(500, Math.max(1, Number(customCount) || wordCount)) : 500;
 
-  const reset = (fresh = false) => {
-    setEngine(createEngine(makeWords(textLanguage, effectiveCount, fresh ? Math.random : () => .5)));
+  const reset = (_fresh = false) => {
+    setEngine(current => {
+      const previousOpening = current.words.slice(0, 8).join(' ');
+      let words = makeWords(textLanguage, effectiveCount);
+      for (let attempt = 0; attempt < 5 && words.slice(0, 8).join(' ') === previousOpening; attempt++) {
+        words = makeWords(textLanguage, effectiveCount);
+      }
+      return createEngine(words);
+    });
     setTick(Date.now());
     requestAnimationFrame(() => inputRef.current?.focus());
   };

@@ -28,9 +28,16 @@ const corpora: Record<Language, string[]> = {
 };
 
 export function makeWords(language: Language, amount: number, random = Math.random): string[] {
-  const paragraphs = [...corpora[language]].sort(() => random() - .5);
+  const paragraphs = [...corpora[language]];
+  for (let i = paragraphs.length - 1; i > 0; i--) {
+    const swapWith = Math.floor(random() * (i + 1));
+    [paragraphs[i], paragraphs[swapWith]] = [paragraphs[swapWith], paragraphs[i]];
+  }
   const pool = paragraphs.flatMap(p => p.split(/\s+/));
   const result: string[] = [];
-  while (result.length < amount) result.push(...pool);
+  while (result.length < amount) {
+    const offset = Math.floor(random() * pool.length);
+    result.push(...pool.slice(offset), ...pool.slice(0, offset));
+  }
   return result.slice(0, amount);
 }

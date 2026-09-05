@@ -1,9 +1,16 @@
 import { describe, expect, it } from 'vitest';
 import { alignWord, createEngine, finishEngine, getStats, typeKey } from './engine';
+import { makeWords } from './content';
 
 const type = (keys: string[], words = ['hello', 'world']) => keys.reduce((state, key, i) => typeKey(state, key, 1000 + i * 100), createEngine(words));
 
 describe('typing engine', () => {
+  it('can produce different text selections', () => {
+    const early = makeWords('nl', 20, () => 0.05).join(' ');
+    const late = makeWords('nl', 20, () => 0.95).join(' ');
+    expect(early).not.toBe(late);
+  });
+
   it('realigns after a skipped letter', () => {
     expect(alignWord('helo', 'hello').states).toEqual(['correct', 'correct', 'missing', 'correct', 'correct']);
   });
