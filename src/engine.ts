@@ -12,6 +12,66 @@ export type EngineState = {
   status: TestStatus;
 };
 
+export type LetterState = 'correct' | 'incorrect' | 'missing' | '';
+
+export function alignWord(typed: string, target: string, finalized = false) {
+  let comparedTarget = target;
+  if (!finalized) {
+    let bestDistance = Number.POSITIVE_INFINITY;
+    let bestLength = 0;
+    for (let length = 0; length <= target.length; length++) {
+      const distance = editDistance(typed, target.slice(0, length));
+      if (distance < bestDistance || (distance === bestDistance && length > bestLength)) {
+        bestDistance = distance;
+        bestLength = length;
+      }
+    }
+    comparedTarget = target.slice(0, bestLength);
+  }
+  const rows = typed.length + 1;
+  const cols = comparedTarget.length + 1;
+  const dp = Array.from({ length: rows }, () => Array<number>(cols).fill(0));
+  for (let i = 0; i < rows; i++) dp[i][0] = i;
+  for (let j = 0; j < cols; j++) dp[0][j] = j;
+  for (let i = 1; i < rows; i++) for (let j = 1; j < cols; j++) {
+    dp[i][j] = Math.min(dp[i - 1][j] + 1, dp[i][j - 1] + 1, dp[i - 1][j - 1] + (typed[i - 1] === comparedTarget[j - 1] ? 0 : 1));
+  }
+  const states: LetterState[] = Array(target.length).fill('');
+  let correct = 0;
+  let extras = 0;
+  let i = typed.length;
+  let j = comparedTarget.length;
+  while (i > 0 || j > 0) {
+    if (i > 0 && j > 0 && dp[i][j] === dp[i - 1][j - 1] + (typed[i - 1] === comparedTarget[j - 1] ? 0 : 1)) {
+      states[j - 1] = typed[i - 1] === comparedTarget[j - 1] ? 'correct' : 'incorrect';
+      if (states[j - 1] === 'correct') correct++;
+      i--; j--;
+    } else if (j > 0 && dp[i][j] === dp[i][j - 1] + 1) {
+      states[j - 1] = 'missing';
+      j--;
+    } else {
+      extras++;
+      i--;
+    }
+  }
+  if (finalized) for (let p = comparedTarget.length; p < target.length; p++) states[p] = 'missing';
+  return { states, correct, extras, cursor: comparedTarget.length, errors: dp[typed.length][comparedTarget.length] + (finalized ? target.length - comparedTarget.length : 0) };
+}
+
+function editDistance(a: string, b: string) {
+  const row = Array.from({ length: b.length + 1 }, (_, i) => i);
+  for (let i = 1; i <= a.length; i++) {
+    let diagonal = row[0];
+    row[0] = i;
+    for (let j = 1; j <= b.length; j++) {
+      const previous = row[j];
+      row[j] = Math.min(row[j] + 1, row[j - 1] + 1, diagonal + (a[i - 1] === b[j - 1] ? 0 : 1));
+      diagonal = previous;
+    }
+  }
+  return row[b.length];
+}
+
 export function createEngine(words: string[]): EngineState {
   return { words, index: 0, current: '', pendingSpace: false, results: [], keystrokes: 0, startedAt: null, finishedAt: null, status: 'idle' };
 }
@@ -59,7 +119,7 @@ export function getStats(state: EngineState, now = Date.now()) {
   let assessedChars = 0;
   let correctWords = 0;
   observed.forEach(({ typed, target }, i) => {
-    for (let p = 0; p < typed.length; p++) if (typed[p] === target[p]) correctChars++;
+    correctChars += alignWord(typed, target, Boolean(state.results[i])).correct;
     assessedChars += state.results[i] ? Math.max(typed.length, target.length) : typed.length;
     if (typed === target && state.results[i]) correctWords++;
   });

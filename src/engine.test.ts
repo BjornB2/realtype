@@ -1,9 +1,19 @@
 import { describe, expect, it } from 'vitest';
-import { createEngine, finishEngine, getStats, typeKey } from './engine';
+import { alignWord, createEngine, finishEngine, getStats, typeKey } from './engine';
 
 const type = (keys: string[], words = ['hello', 'world']) => keys.reduce((state, key, i) => typeKey(state, key, 1000 + i * 100), createEngine(words));
 
 describe('typing engine', () => {
+  it('realigns after a skipped letter', () => {
+    expect(alignWord('helo', 'hello').states).toEqual(['correct', 'correct', 'missing', 'correct', 'correct']);
+  });
+
+  it('realigns after an extra letter', () => {
+    const alignment = alignWord('helllo', 'hello');
+    expect(alignment.states).toEqual(['correct', 'correct', 'correct', 'correct', 'correct']);
+    expect(alignment.extras).toBe(1);
+  });
+
   it('starts only on a printable key', () => {
     expect(typeKey(createEngine(['hello']), 'Backspace', 1000).status).toBe('idle');
     expect(typeKey(createEngine(['hello']), 'h', 1000).startedAt).toBe(1000);

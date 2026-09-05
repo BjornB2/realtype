@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
-import { Check, ChevronDown, Languages, Moon, RotateCcw, Settings2, Sun, X } from 'lucide-react';
+import { Check, Languages, Moon, RotateCcw, Sun } from 'lucide-react';
 import { makeWords, type Language } from './content';
 import { browserLanguage, messages, type Messages } from './i18n';
-import { createEngine, finishEngine, getStats, type EngineState, type WordResult, typeKey } from './engine';
+import { alignWord, createEngine, finishEngine, getStats, type EngineState, type WordResult, typeKey } from './engine';
 
 type Mode = 'time' | 'words';
 type Theme = 'auto' | 'light' | 'dark';
@@ -22,7 +22,6 @@ export default function App() {
   const [duration, setDuration] = useState(60);
   const [wordCount, setWordCount] = useState(50);
   const [customCount, setCustomCount] = useState('');
-  const [settingsOpen, setSettingsOpen] = useState(false);
   const [tick, setTick] = useState(0);
   const [engine, setEngine] = useState<EngineState>(() => createEngine(makeWords(initialLanguage, 500)));
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -75,14 +74,12 @@ export default function App() {
       <p className="tagline">{t.tagline}</p>
       <div className="header-actions">
         <ThemeButton theme={theme} setTheme={setTheme} label={t.theme} />
-        <button className={`icon-button ${settingsOpen ? 'selected' : ''}`} aria-label={t.settings} aria-expanded={settingsOpen} onClick={e => { e.stopPropagation(); setSettingsOpen(v => !v); }}><Settings2 size={18}/></button>
       </div>
     </header>
 
-    {settingsOpen && <Settings locale={locale} textLanguage={textLanguage} mode={mode} duration={duration} wordCount={wordCount} customCount={customCount} setLocale={setLocale} setTextLanguage={setTextLanguage} setMode={setMode} setDuration={setDuration} setWordCount={setWordCount} setCustomCount={setCustomCount} close={() => setSettingsOpen(false)} />}
-
     <section className="workspace">
       <div className="eyebrow"><Languages size={13}/>{textLanguage === 'nl' ? 'NEDERLANDS' : 'ENGLISH'}<i/> {testLabel.toUpperCase()}</div>
+      <Settings locale={locale} textLanguage={textLanguage} mode={mode} duration={duration} wordCount={wordCount} customCount={customCount} setLocale={setLocale} setTextLanguage={setTextLanguage} setMode={setMode} setDuration={setDuration} setWordCount={setWordCount} setCustomCount={setCustomCount} />
       <div className="stats" aria-live="polite">
         <Metric value={remaining} label={mode === 'time' ? 'sec' : t.words.toLowerCase()} />
         <Metric value={stats.wpm} label={t.wpm} />
@@ -118,14 +115,14 @@ function Word({ word, index, engine, activeRef }: { word: string; index: number;
   const isActive = index === engine.index && engine.status !== 'finished';
   const typed = result?.typed ?? (isActive ? engine.current : '');
   const committed = Boolean(result);
-  return <span ref={activeRef} className={`word ${isActive ? 'active' : ''} ${typed.length > word.length ? 'has-overflow' : ''} ${committed ? (typed === word ? 'word-correct' : 'word-wrong') : ''}`}>
+  const alignment = alignWord(typed, word, committed);
+  return <span ref={activeRef} className={`word ${isActive ? 'active' : ''} ${alignment.extras ? 'has-overflow' : ''} ${committed ? (typed === word ? 'word-correct' : 'word-wrong') : ''}`}>
     {word.split('').map((letter, position) => {
-      const input = typed[position];
-      const state = input == null ? (committed ? 'missing' : '') : input === letter ? 'correct' : 'incorrect';
-      const cursor = isActive && position === typed.length && !engine.pendingSpace;
+      const state = alignment.states[position];
+      const cursor = isActive && position === alignment.cursor && !engine.pendingSpace;
       return <span key={position} className={`letter ${state} ${cursor ? 'cursor' : ''}`}>{letter}</span>;
     })}
-    {isActive && typed.length === word.length && !engine.pendingSpace && <span className="end-cursor"/>}
+    {isActive && alignment.cursor === word.length && !engine.pendingSpace && <span className="end-cursor"/>}
     {typed.length > word.length && <span className="extra" aria-hidden="true">{typed.slice(word.length)}</span>}
   </span>;
 }
@@ -136,19 +133,21 @@ function ThemeButton({ theme, setTheme, label }: { theme: Theme; setTheme: (v: T
   return <button className="icon-button theme-button" aria-label={`${label}: ${theme}`} onClick={e => { e.stopPropagation(); setTheme(next[theme]); }} title={`${label}: ${theme}`}>{Icon ? <Icon size={18}/> : <span className="auto-theme"><Sun/><Moon/></span>}</button>;
 }
 
-type SettingsProps = { locale:Language;textLanguage:Language;mode:Mode;duration:number;wordCount:number;customCount:string;setLocale:(v:Language)=>void;setTextLanguage:(v:Language)=>void;setMode:(v:Mode)=>void;setDuration:(v:number)=>void;setWordCount:(v:number)=>void;setCustomCount:(v:string)=>void;close:()=>void };
+type SettingsProps = { locale:Language;textLanguage:Language;mode:Mode;duration:number;wordCount:number;customCount:string;setLocale:(v:Language)=>void;setTextLanguage:(v:Language)=>void;setMode:(v:Mode)=>void;setDuration:(v:number)=>void;setWordCount:(v:number)=>void;setCustomCount:(v:string)=>void };
 function Settings(p: SettingsProps) {
   const t = messages[p.locale];
-  return <aside className="settings-panel" aria-label={t.settings}>
-    <div className="settings-title"><strong>{t.settings}</strong><button onClick={p.close} aria-label="Close"><X size={17}/></button></div>
-    <Setting label={t.interfaceLanguage}><Segment options={[['nl','Nederlands'],['en','English']]} value={p.locale} setValue={v => p.setLocale(v as Language)}/></Setting>
-    <Setting label={t.textLanguage}><Segment options={[['nl','Nederlands'],['en','English']]} value={p.textLanguage} setValue={v => p.setTextLanguage(v as Language)}/></Setting>
+  return <aside className="settings-bar" aria-label={t.settings}>
+    <SelectSetting label={t.interfaceLanguage} value={p.locale} onChange={v => p.setLocale(v as Language)} options={[['nl','Nederlands'],['en','English']]} />
+    <SelectSetting label={t.textLanguage} value={p.textLanguage} onChange={v => p.setTextLanguage(v as Language)} options={[['nl','Nederlands'],['en','English']]} />
     <Setting label={t.mode}><Segment options={[['time',t.time],['words',t.words]]} value={p.mode} setValue={v => p.setMode(v as Mode)}/></Setting>
-    {p.mode === 'time' ? <Setting label={t.duration}><Segment options={durationOptions.map(n => [String(n), `${n}s`])} value={String(p.duration)} setValue={v => p.setDuration(Number(v))}/></Setting> : <Setting label={t.wordCount}>
-      <div className="word-options">{wordOptions.map(n => <button className={!p.customCount && p.wordCount === n ? 'active' : ''} onClick={() => { p.setCustomCount(''); p.setWordCount(n); }} key={n}>{n}</button>)}<label><input type="number" min="1" max="500" placeholder={t.custom} value={p.customCount} onChange={e => p.setCustomCount(e.target.value.replace(/\D/g,'').slice(0,3))}/><ChevronDown size={13}/></label></div>
-    </Setting>}
+    {p.mode === 'time'
+      ? <SelectSetting label={t.duration} value={String(p.duration)} onChange={v => p.setDuration(Number(v))} options={durationOptions.map(n => [String(n), `${n} ${t.seconds}`])}/>
+      : <SelectSetting label={t.wordCount} value={p.customCount ? 'custom' : String(p.wordCount)} onChange={v => { if (v === 'custom') p.setCustomCount(String(p.wordCount)); else { p.setCustomCount(''); p.setWordCount(Number(v)); } }} options={[...wordOptions.map(n => [String(n), String(n)]), ['custom',t.custom]]}/>
+    }
+    {p.mode === 'words' && p.customCount && <label className="custom-count"><span>{t.wordCount}</span><input aria-label={t.wordCount} type="number" min="1" max="500" value={p.customCount} onChange={e => p.setCustomCount(String(Math.min(500, Math.max(1, Number(e.target.value) || 1))))}/></label>}
   </aside>;
 }
 function Setting({ label, children }: { label:string; children:React.ReactNode }) { return <div className="setting"><label>{label}</label>{children}</div>; }
+function SelectSetting({ label, value, onChange, options }: {label:string;value:string;onChange:(v:string)=>void;options:string[][]}) { return <label className="select-setting"><span>{label}</span><select value={value} onChange={e => onChange(e.target.value)}>{options.map(([key,text]) => <option value={key} key={key}>{text}</option>)}</select></label>; }
 function Segment({ options, value, setValue }: { options:(string[])[];value:string;setValue:(v:string)=>void }) { return <div className="segments">{options.map(([key,label]) => <button className={value === key ? 'active' : ''} onClick={() => setValue(key)} key={key}>{value === key && <Check size={12}/>} {label}</button>)}</div>; }
 function Results({ stats, t, reset }: { stats:ReturnType<typeof getStats>;t:Messages;reset:()=>void }) { return <div className="result-backdrop"><dialog open className="result-card" aria-labelledby="result-title"><div className="result-check"><Check/></div><span>{t.completed}</span><h2 id="result-title">{t.result}</h2><div className="result-main"><strong>{stats.wpm}</strong><span>{t.wpm}</span></div><div className="result-grid"><Metric value={stats.cpm} label={t.cpm}/><Metric value={`${stats.accuracy}%`} label={t.accuracy}/><Metric value={stats.correctWords} label={t.correctWords}/><Metric value={stats.incorrectWords} label={t.incorrectWords}/></div><button className="primary-button" onClick={reset}><RotateCcw size={16}/>{t.again}</button></dialog></div>; }
