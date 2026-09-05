@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Check, Languages, Moon, RotateCcw, Sun } from 'lucide-react';
 import { makeWords, type Language } from './content';
 import { browserLanguage, messages, type Messages } from './i18n';
@@ -25,6 +25,7 @@ export default function App() {
   const [tick, setTick] = useState(0);
   const [engine, setEngine] = useState<EngineState>(() => createEngine(makeWords(initialLanguage, 500)));
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const passageRef = useRef<HTMLDivElement>(null);
   const activeRef = useRef<HTMLSpanElement>(null);
   const t = messages[locale];
   const textLanguage: Language = textLanguageMode === 'auto' ? locale : textLanguageMode;
@@ -69,7 +70,23 @@ export default function App() {
       setEngine(current => finishEngine(current, current.startedAt! + duration * 1000));
     }
   }, [tick, duration, mode, engine.status, engine.startedAt]);
-  useEffect(() => { activeRef.current?.scrollIntoView({ block: 'nearest' }); }, [engine.index]);
+  useLayoutEffect(() => {
+    const passage = passageRef.current;
+    const activeWord = activeRef.current;
+    if (!passage || !activeWord) return;
+
+    const passageRect = passage.getBoundingClientRect();
+    const wordRect = activeWord.getBoundingClientRect();
+    const lineHeight = Number.parseFloat(getComputedStyle(passage).lineHeight) || wordRect.height;
+    const upperBoundary = passageRect.top + lineHeight * 0.35;
+    const lowerBoundary = passageRect.bottom - lineHeight * 1.15;
+
+    if (wordRect.top < upperBoundary) {
+      passage.scrollTop += wordRect.top - upperBoundary;
+    } else if (wordRect.bottom > lowerBoundary) {
+      passage.scrollTop += wordRect.bottom - lowerBoundary;
+    }
+  }, [engine.index]);
 
   const stats = getStats(engine, tick);
   const remaining = mode === 'time' ? Math.max(0, Math.ceil((duration * 1000 - stats.elapsedMs) / 1000)) : Math.max(0, effectiveCount - engine.results.length);
@@ -110,7 +127,7 @@ export default function App() {
 
       <div className={`text-panel ${engine.status === 'running' ? 'is-running' : ''}`} onClick={() => inputRef.current?.focus()} onKeyDown={() => inputRef.current?.focus()} role="button" tabIndex={-1}>
         <textarea ref={inputRef} className="capture-input" onKeyDown={onKeyDown} aria-label={t.start} autoCapitalize="off" autoCorrect="off" spellCheck={false} />
-        <div className="passage" aria-hidden="true">
+        <div ref={passageRef} className="passage" aria-hidden="true">
           {engine.words.map((word, index) => <Word key={`${index}-${word}`} word={word} index={index} engine={engine} activeRef={index === engine.index ? activeRef : undefined}/>) }
         </div>
         <div className="typed-line">
