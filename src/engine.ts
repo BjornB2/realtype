@@ -157,11 +157,13 @@ export function getStats(state: EngineState, now = Date.now()) {
     if (typed === target && state.results[i]) correctWords++;
   });
   const minutes = elapsedMs / 60000;
+  const accuracyRatio = assessedChars ? correctChars / assessedChars : 1;
+  const grossWpm = minutes ? (state.keystrokes / 5) / minutes : 0;
   return {
     elapsedMs,
     cpm: minutes ? Math.round(state.keystrokes / minutes) : 0,
-    wpm: minutes ? Math.round((state.keystrokes / 5) / minutes) : 0,
-    accuracy: assessedChars ? Math.round((correctChars / assessedChars) * 100) : 100,
+    wpm: Math.round(grossWpm * accuracyRatio),
+    accuracy: Math.round(accuracyRatio * 100),
     correctWords,
     incorrectWords: state.results.length - correctWords,
   };

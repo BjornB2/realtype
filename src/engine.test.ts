@@ -133,14 +133,22 @@ describe('typing engine', () => {
     const stats = getStats(state, 61000);
     expect(state.results).toHaveLength(1);
     expect(stats.accuracy).toBe(60);
-    expect(stats.wpm).toBe(1);
+    expect(stats.wpm).toBe(0);
   });
 
-  it('calculates standard gross WPM from all produced characters', () => {
+  it('adjusts standardized five-character WPM by character accuracy', () => {
     const state = finishEngine(type(['h','x','l','l','o',' ','w','o','r','l','d'], ['hello', 'world']), 61000);
     const stats = getStats(state, 61000);
     expect(stats.cpm).toBe(11);
     expect(stats.wpm).toBe(2);
     expect(stats.accuracy).toBeLessThan(100);
+  });
+
+  it('does not discard an entire long word for one wrong character', () => {
+    const target = ['abcdefghij'];
+    const state = finishEngine(type(['a','b','c','d','x','f','g','h','i','j'], target), 61000);
+    const stats = getStats(state, 61000);
+    expect(stats.accuracy).toBe(90);
+    expect(stats.wpm).toBe(2);
   });
 });
