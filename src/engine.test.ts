@@ -31,7 +31,9 @@ describe('typing engine', () => {
   });
 
   it('realigns after a skipped letter', () => {
-    expect(alignWord('helo', 'hello').states).toEqual(['correct', 'correct', 'missing', 'correct', 'correct']);
+    const alignment = alignWord('helo', 'hello');
+    expect(alignment.states).toEqual(['correct', 'correct', 'missing', 'correct', 'correct']);
+    expect(alignment.displayChars).toEqual(['h', 'e', 'l', 'l', 'o']);
   });
 
   it('realigns after an extra letter', () => {
@@ -42,7 +44,18 @@ describe('typing engine', () => {
 
   it('reports where an extra letter was inserted', () => {
     expect(alignWord('rtafels', 'tafels').extraPositions).toEqual([0]);
+    expect(alignWord('rtafels', 'tafels').extrasByPosition[0]).toBe('r');
     expect(alignWord('taffels', 'tafels').extraPositions).toEqual([2]);
+  });
+
+  it('shows the typed character for a replacement', () => {
+    const alignment = alignWord('taxels', 'tafels');
+    expect(alignment.states[2]).toBe('incorrect');
+    expect(alignment.displayChars[2]).toBe('x');
+  });
+
+  it('groups multiple extra letters at one boundary in their typed order', () => {
+    expect(alignWord('tafrjkels', 'tafels').extrasByPosition[3]).toBe('rjk');
   });
 
   it('starts only on a printable key', () => {

@@ -144,13 +144,17 @@ function Word({ word, index, engine, activeRef }: { word: string; index: number;
     {word.split('').map((letter, position) => {
       const state = alignment.states[position];
       const cursor = isActive && position === alignment.cursor && !engine.pendingSpace;
-      const extraCount = alignment.extraPositions.filter(at => at === position).length;
-      return <span key={position} className={`letter ${state} ${cursor ? 'cursor' : ''}`}>{extraCount > 0 && <span className="extra-marker" aria-hidden="true" data-count={extraCount}/>}<>{letter}</></span>;
+      const extra = alignment.extrasByPosition[position];
+      return <span key={position} className={`letter ${state} ${cursor ? 'cursor' : ''}`} data-expected={state === 'incorrect' ? letter : undefined}>{extra && <span className="extra-insertion" aria-label={`extra ${extra}`}>{formatExtra(extra)}</span>}<>{alignment.displayChars[position]}</></span>;
     })}
-    {alignment.extraPositions.includes(word.length) && <span className="extra-marker end-extra" aria-hidden="true" data-count={alignment.extraPositions.filter(at => at === word.length).length}/>} 
+    {alignment.extrasByPosition[word.length] && <span className="extra-insertion end-extra" aria-label={`extra ${alignment.extrasByPosition[word.length]}`}>{formatExtra(alignment.extrasByPosition[word.length])}</span>}
     {isActive && alignment.cursor === word.length && !engine.pendingSpace && <span className="end-cursor"/>}
     {typed.length > word.length && <span className="extra" aria-hidden="true">{typed.slice(word.length)}</span>}
   </span>;
+}
+
+function formatExtra(extra: string) {
+  return extra.length <= 4 ? extra : `${extra.slice(0, 2)}…+${extra.length - 2}`;
 }
 
 function ThemeButton({ theme, setTheme, label }: { theme: Theme; setTheme: (v: Theme) => void; label: string }) {

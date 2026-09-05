@@ -47,6 +47,8 @@ export function alignWord(typed: string, target: string, finalized = false) {
     dp[i][j] = Math.min(dp[i - 1][j] + 1, dp[i][j - 1] + 1, dp[i - 1][j - 1] + (typed[i - 1] === comparedTarget[j - 1] ? 0 : 1));
   }
   const states: LetterState[] = Array(target.length).fill('');
+  const displayChars = [...target];
+  const extrasByPosition: string[] = Array.from({ length: target.length + 1 }, () => '');
   let correct = 0;
   let extras = 0;
   const extraPositions: number[] = [];
@@ -55,6 +57,7 @@ export function alignWord(typed: string, target: string, finalized = false) {
   while (i > 0 || j > 0) {
     if (i > 0 && j > 0 && dp[i][j] === dp[i - 1][j - 1] + (typed[i - 1] === comparedTarget[j - 1] ? 0 : 1)) {
       states[j - 1] = typed[i - 1] === comparedTarget[j - 1] ? 'correct' : 'incorrect';
+      displayChars[j - 1] = typed[i - 1];
       if (states[j - 1] === 'correct') correct++;
       i--; j--;
     } else if (j > 0 && dp[i][j] === dp[i][j - 1] + 1) {
@@ -63,11 +66,12 @@ export function alignWord(typed: string, target: string, finalized = false) {
     } else {
       extras++;
       extraPositions.push(j);
+      extrasByPosition[j] = typed[i - 1] + extrasByPosition[j];
       i--;
     }
   }
   if (finalized) for (let p = comparedTarget.length; p < target.length; p++) states[p] = 'missing';
-  return { states, correct, extras, extraPositions, cursor: comparedTarget.length, errors: dp[typed.length][comparedTarget.length] + (finalized ? target.length - comparedTarget.length : 0) };
+  return { states, displayChars, correct, extras, extrasByPosition, extraPositions, cursor: comparedTarget.length, errors: dp[typed.length][comparedTarget.length] + (finalized ? target.length - comparedTarget.length : 0) };
 }
 
 function editDistance(a: string, b: string) {
